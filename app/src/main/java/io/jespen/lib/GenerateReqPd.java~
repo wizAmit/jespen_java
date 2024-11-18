@@ -1,0 +1,4 @@
+package io.jespen.lib;
+
+public record GenerateReqPd(int msg_id) implements ReqPayload {
+}

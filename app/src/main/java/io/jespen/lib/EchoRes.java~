@@ -8,7 +8,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Map;
 
-//@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public record EchoRes(int msg_id, int in_reply_to, String echo) implements ResPayload {
 
     public EchoRes(EchoReqPd echoReq, int msg_id) {

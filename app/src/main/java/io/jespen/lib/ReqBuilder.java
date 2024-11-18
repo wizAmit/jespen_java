@@ -13,22 +13,26 @@ public class ReqBuilder {
     private ReqPayload payload;
     private MsgType msgType;
 
-    private final Logger logger = Logger.getLogger(ReqBuilder.class.getName());
-
     public ReqBuilder(String reqString) {
-//        System.err.println("Reading " + reqString);
+        System.err.println("Reading " + reqString);
         try {
             JsonNode rootNode = new ObjectMapper().readTree(reqString);
             this.headers = new Headers(rootNode);
             this.msgType = MsgType.valueOf(rootNode.get("body").get("type").asText());
-
-//            logger.info(this.msgType.toString());
 
             // ToDO: Growth starts here
             this.payload = switch (this.msgType) {
                 case echo -> new EchoReqPd(rootNode);
                 case echo_ok -> null;
                 case init -> new InitReqPd(rootNode);
+                case generate -> new UniqIdReqPd(rootNode);
+                case generate_ok -> null;
+                case broadcast -> new BroadcastReqPd(rootNode);
+                case broadcast_ok -> null;
+                case read -> new ReadReqPd(rootNode);
+                case read_ok -> null;
+                case topology -> new TopologyReqPd(rootNode);
+                case topology_ok -> null;
                 default -> null;
             };
         } catch (Exception e) {

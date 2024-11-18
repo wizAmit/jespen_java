@@ -1,0 +1,4 @@
+package io.jespen.lib;
+
+public record TopologyReqPd(int msg_id, ) implements ReqPayload {
+}

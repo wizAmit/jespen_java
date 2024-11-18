@@ -23,6 +23,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:2.18.1")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.1")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.18.1")
+    implementation("com.eclipsesource.minimal-json:minimal-json:0.9.5")
 }
 
 testing {
@@ -64,6 +65,7 @@ graalvmNative {
             imageName.set("jespen-runner")
             mainClass.set("io.jespen.Runner")
             buildArgs.add("-O4")
+            buildArgs.add("-H:-ReduceImplicitExceptionStackTraceInformation")
         }
         // named("test") {
         //     buildArgs.add("-O0")

@@ -1,27 +1,38 @@
 package io.jespen.lib;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 public class ReqBuilder {
     private Headers headers;
     private ReqPayload payload;
     private MsgType msgType;
 
-    public ReqBuilder(String reqString) throws IOException {
-        JsonNode rootNode = ReqPayload.objectMapper.readTree(reqString);
-        this.headers = new Headers(rootNode);
-        this.msgType = MsgType.valueOf(rootNode.get("body").get("type").asText());
+    private final Logger logger = Logger.getLogger(ReqBuilder.class.getName());
 
-        this.payload = switch (this.msgType) {
-            case echo -> new EchoReqPd(rootNode);
-            case echo_ok -> null;
-            case init -> new InitReqPd(rootNode);
-            default -> null;
-        };
+    public ReqBuilder(String reqString) {
+        try {
+            JsonNode rootNode = new ObjectMapper().readTree(reqString);
+            this.headers = new Headers(rootNode);
+            this.msgType = MsgType.valueOf(rootNode.get("body").get("type").asText());
+
+//            logger.info(this.msgType.toString());
+
+            this.payload = switch (this.msgType) {
+                case echo -> new EchoReqPd(rootNode);
+                case echo_ok -> null;
+                case init -> new InitReqPd(rootNode);
+                default -> null;
+            };
+        } catch (Exception e) {
+            throw new RuntimeException("JSON parse error");
+        }
+
     }
 
     public Message build() {

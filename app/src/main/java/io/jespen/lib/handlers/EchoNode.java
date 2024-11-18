@@ -1,17 +1,20 @@
 package io.jespen.lib.handlers;
 
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import io.jespen.lib.EchoRes;
+import io.jespen.lib.InitReqPd;
 import io.jespen.lib.Message;
 import io.jespen.lib.ResBuilder;
 
 public class EchoNode implements MessageHandler {
+    private final Node node;
+
+    public EchoNode(Node node) {
+        this.node = node;
+    }
 
     @Override
     public Message handle(Message req) {
-        return new ResBuilder(req, msgId.incrementAndGet()).build(); 
-        
+//        System.out.println("ECHONode " + req);
+        return ResBuilder.build(req, msgId.incrementAndGet());
     }
+
 }

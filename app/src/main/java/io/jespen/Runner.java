@@ -3,50 +3,62 @@
  */
 package io.jespen;
 
+import java.io.IOException;
 import java.util.Scanner;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
+import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import io.jespen.lib.EchoReqPd;
-import io.jespen.lib.EchoRes;
-import io.jespen.lib.Headers;
-import io.jespen.lib.Message;
-import io.jespen.lib.ReqBuilder;
-import io.jespen.lib.ResBuilder;
-import io.jespen.lib.ResSerializer;
-import io.jespen.lib.MsgType;
+import io.jespen.bulider.NodeBuilder;
+import io.jespen.lib.*;
 import io.jespen.lib.handlers.EchoNode;
-import io.jespen.lib.handlers.InitNode;
 import io.jespen.lib.handlers.MessageHandler;
+import io.jespen.lib.handlers.Node;
+import io.jespen.lib.handlers.NodeHandlers;
 
 public class Runner {
 
+    static BiConsumer<Message, Throwable> outConsumer = (message,ex) -> {
+        JsonObject res = new JsonObject()
+                .add("src", message.headers().dest())
+                .add("dest", message.headers().src())
+                .add("body", message.payload().getJsonObject());
+        System.out.println(res.toString());
+    };
+
     public static void main(String[] args) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(Message.class, new ResSerializer());
-        objectMapper.registerModule(module);
 
-        MessageHandler echoNode = new EchoNode();
-        MessageHandler initNode = new InitNode();
+        try (Scanner scanner = new Scanner(System.in);) {
+            String nodeInitReq = scanner.nextLine();
+            final NodeBuilder.TwoPartBuilder builder = new NodeBuilder.TwoPartBuilder();
+            CompletableFuture<NodeBuilder.TwoPartBuilder> initMessage = CompletableFuture.supplyAsync(
+                                                                () -> builder.initTwoPartBuilder(new ReqBuilder(nodeInitReq).build(),
+                                                                        NodeHandlers.Echo) );
 
-        Executor executor = Executors.newVirtualThreadPerTaskExecutor();
-
-        try (final Scanner scanner = new Scanner(System.in);) {
+            initMessage.thenApply(builder::handle)
+//                    .thenApply()
+                    .whenComplete(outConsumer).join();
+            final MessageHandler messageHandler = builder.getNodeHandler();
+            
             while (scanner.hasNext()) {
-                final String inp = scanner.nextLine();
-                final Message echoReq = new ReqBuilder(inp).build();
-                Message echoRes = echoReq.msgType().equals(MsgType.echo) ? executor.execute(() -> echoNode.handle(echoReq))
-                        : executor.execute(() -> initNode.handle(echoReq));
-                System.out.println(objectMapper.writeValueAsString(echoRes));
+                String line = scanner.nextLine();
+                CompletableFuture<Message> resFuture = CompletableFuture
+                        .supplyAsync(() -> new ReqBuilder(line).build());
+
+//                System.out.println("here");
+
+                resFuture.thenApply(messageHandler::handle)
+                        .whenComplete(outConsumer)
+                        .join();
+                
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(1);
         }
-    }
 
+    }
 }

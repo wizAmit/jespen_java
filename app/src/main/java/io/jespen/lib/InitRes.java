@@ -1,8 +1,12 @@
 package io.jespen.lib;
 
+import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.annotation.*;
 
-public record InitRes(int msg_id, int reply_to) implements ResPayload {
+import java.io.Serializable;
+
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+public record InitRes(int msg_id, int in_reply_to) implements ResPayload {
     
     public InitRes(InitReqPd initReq, int msg_id) {
         this(msg_id, initReq.getMsgId());
@@ -11,7 +15,7 @@ public record InitRes(int msg_id, int reply_to) implements ResPayload {
     @JsonIgnore
     @Override
     public int getInReplyTo() {
-        return reply_to();
+        return in_reply_to();
     }
 
     @JsonIgnore
@@ -20,9 +24,17 @@ public record InitRes(int msg_id, int reply_to) implements ResPayload {
         return msg_id();
     }
 
-    @JsonProperty("type")
     @Override
     public MsgType getMsgType() {
         return MsgType.init_ok;
     }
+
+    @Override
+    public JsonObject getJsonObject() {
+        return new JsonObject()
+                .add("msg_id", msg_id())
+                .add("in_reply_to", in_reply_to())
+                .add("type", getMsgType().toString());
+    }
+
 }

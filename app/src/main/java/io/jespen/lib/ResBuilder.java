@@ -1,24 +1,41 @@
 package io.jespen.lib;
 
-public class ResBuilder {
-    private Headers headers;
-    private ResPayload payload;
-    private MsgType msgType;
+import io.jespen.lib.handlers.NodeHandlers;
 
-    public ResBuilder(Message message, int msg_id) {
-        this.headers = new Headers(message.headers().dest(), message.headers().src());
-        this.msgType = Payload.echoTypes.get(message.msgType());
+import java.util.Map;
 
-        this.payload = switch (this.msgType) {
-            case echo -> null;
-            case echo_ok -> new EchoRes((EchoReqPd)message.payload(), msg_id);
-            case init -> null;
-            case init_ok -> new InitRes((InitReqPd)message.payload(), msg_id);
-            default -> null;
-        };
-    }
+public final class ResBuilder {
 
-    public Message build() {
+    static final Map<MsgType, MsgType> msgTypeMap = Map.ofEntries(
+            Map.entry(MsgType.echo, MsgType.echo_ok),
+            Map.entry(MsgType.init, MsgType.init_ok)
+    );
+
+    public ResBuilder(){}
+
+    public static Message build(Message message, int msg_id) {
+        Headers headers = new Headers(message.headers().dest(), message.headers().src());
+//        System.out.println(message.msgType());
+        MsgType msgType = msgTypeMap.get(message.msgType());
+//        System.out.println(msgType);
+//        assert(this != null);
+
+        ResPayload payload;
+        switch (msgType) {
+            case init, init_ok -> {
+                payload = new InitRes((InitReqPd)message.payload(), msg_id);
+                break;
+            }
+            case echo_ok -> {
+                payload = new EchoRes((EchoReqPd)message.payload(), msg_id);
+                break;
+            }
+            default -> {
+                payload = null;
+                break;
+            }
+        }
+
         return new Message(msgType, headers, payload);
     }
 }

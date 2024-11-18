@@ -5,25 +5,9 @@ import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.*;
 
-public record Message(@JsonIgnore MsgType msgType, Headers headers, Payload payload) implements Serializable {
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonValue;
 
-    private static class MessageProxy implements Serializable {
+public record Message(@JsonIgnore MsgType msgType, Headers headers, Payload payload) {
 
-        private static final long serialVersionUID = 8333905273185431754L;
-
-        private String src;
-        private String dest;
-        private Payload body;
-
-        public MessageProxy(Message m) {
-            this.src = m.headers().src();
-            this.dest = m.headers().dest();
-            this.body = m.payload();
-        }
-
-    }
-
-    private Object writeReplace() {
-        return new MessageProxy(this);
-    }
 }

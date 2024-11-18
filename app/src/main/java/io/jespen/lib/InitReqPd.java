@@ -1,5 +1,6 @@
 package io.jespen.lib;
 
+import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Arrays;
@@ -19,6 +20,11 @@ public record InitReqPd(int msg_id, String node_id, List<String> node_ids) imple
     @Override
     public int getMsgId() {
         return msg_id;
+    }
+
+    @Override
+    public JsonObject getJsonObject() {
+        return null;
     }
 
     @Override

@@ -10,6 +10,7 @@ import io.jespen.lib.ResBuilder;
 public interface MessageHandler {
 
     static final AtomicInteger msgId = new AtomicInteger();
+    static final ResBuilder resBuilder = new ResBuilder();    
 
     public Function<Message, Message> init = Function.identity();
 

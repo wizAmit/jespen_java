@@ -1,6 +1,5 @@
 package io.jespen.lib;
 
-import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record EchoReqPd(int msg_id, String echo) implements ReqPayload {
@@ -12,11 +11,6 @@ public record EchoReqPd(int msg_id, String echo) implements ReqPayload {
     @Override
     public int getMsgId() {
         return msg_id;
-    }
-
-    @Override
-    public JsonObject getJsonObject() {
-        return null;
     }
 
     @Override

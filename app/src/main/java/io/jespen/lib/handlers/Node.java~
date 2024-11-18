@@ -20,7 +20,7 @@ public class Node implements MessageHandler {
         this.neighbors = ((InitReqPd) message.payload()).node_ids();
     };
 
-//    @Override
+    @Override
     public Message handle(Message req) {
         return ResBuilder.build(req, msgId.incrementAndGet());
     }

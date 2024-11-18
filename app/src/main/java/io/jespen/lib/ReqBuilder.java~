@@ -16,7 +16,7 @@ public class ReqBuilder {
     private final Logger logger = Logger.getLogger(ReqBuilder.class.getName());
 
     public ReqBuilder(String reqString) {
-//        System.err.println("Reading " + reqString);
+        System.err.println("Reading " + reqString);
         try {
             JsonNode rootNode = new ObjectMapper().readTree(reqString);
             this.headers = new Headers(rootNode);

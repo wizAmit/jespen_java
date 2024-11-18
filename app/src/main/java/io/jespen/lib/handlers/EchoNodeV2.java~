@@ -6,7 +6,7 @@ public class EchoNodeV2 extends NodeV2 implements MessageHandler {
 
     @Override
     public Message handle(Message message) {
-//        System.err.println("Handling " + message);
+        System.err.println("Handling " + message);
         return
                 message.msgType().equals(MsgType.echo) ?
                 new Message(MsgType.echo_ok,

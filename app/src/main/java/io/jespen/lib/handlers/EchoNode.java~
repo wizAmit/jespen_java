@@ -11,7 +11,7 @@ public class EchoNode implements MessageHandler {
         this.node = node;
     }
 
-//    @Override
+    @Override
     public Message handle(Message req) {
 //        System.out.println("ECHONode " + req);
         return ResBuilder.build(req, msgId.incrementAndGet());

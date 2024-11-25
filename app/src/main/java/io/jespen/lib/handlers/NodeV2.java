@@ -1,5 +1,6 @@
 package io.jespen.lib.handlers;
 
+import com.eclipsesource.json.JsonObject;
 import io.jespen.lib.*;
 
 import java.util.List;
@@ -16,7 +17,20 @@ public abstract class NodeV2 {
         return new Headers(msg.headers().dest(), msg.headers().src());
     };
 
-    String nodeId;
+    Function<String, List<Integer>> getRpcPorts = (String nodeId)  -> {
+        int n = nodeId.charAt(1) - '0';
+        return List.of(2*(2000+n)+1, 2*(2000+n)+2);
+    };
+
+    public Function<Message, JsonObject> toJsonObject = (Message message) -> {
+        return new JsonObject()
+                .add("src", message.headers().src())
+                .add("dest", message.headers().dest())
+
+                .add("body", message.payload().getJsonObject());
+    };
+
+    protected String nodeId;
     List<String> neighbors;
 
     public abstract Message handle(Message message);

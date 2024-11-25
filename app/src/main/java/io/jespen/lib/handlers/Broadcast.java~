@@ -54,7 +54,7 @@ public class Broadcast extends NodeV2 {
                 System.err.println(neighbors);
                 CompletableFuture.runAsync(() -> {
                     RpcClient rpcClient = new RpcClient();
-                    rpcClient.start(getRpcPorts.apply(neighbors).get(0), message);
+                    rpcClient.start(getRpcPorts.apply(neighbors).get(1), message);
                 }, gossip.scheduledGossipCli);
             }
 

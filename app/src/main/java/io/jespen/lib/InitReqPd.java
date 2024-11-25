@@ -15,6 +15,8 @@ public record InitReqPd(int msg_id, String node_id, List<String> node_ids) imple
                 input.get("body").get("node_id").asText(),
                 Arrays.asList(objectMapper.convertValue(input.get("body").get("node_ids"), String[].class))
                 );
+
+//        assert (node_ids != null);
     }
 
     @Override

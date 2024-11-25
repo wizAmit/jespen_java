@@ -12,5 +12,7 @@ public enum MsgType {
     read,
     read_ok,
     topology,
-    topology_ok
+    topology_ok,
+    gossip,
+    gossip_ok
 }

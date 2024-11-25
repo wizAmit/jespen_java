@@ -9,6 +9,8 @@ import io.jespen.lib.ReqBuilder;
 import io.jespen.lib.handlers.*;
 
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -17,6 +19,7 @@ public class Runner {
 
     static BiConsumer<Message, Throwable> outConsumer = (message, ex) -> {
         System.err.println("Outputting " + message);
+        if (message == null) return;
         JsonObject res = new JsonObject()
                 .add("src", message.headers().src())
                 .add("dest", message.headers().dest())
@@ -31,14 +34,12 @@ public class Runner {
         NodeV2 messageHandler = new Broadcast();
 
 
-        try (Scanner scanner = new Scanner(System.in);) {
+        try (Scanner scanner = new Scanner(System.in)) {
 
             while (scanner.hasNext()) {
                 String line = scanner.nextLine();
                 CompletableFuture<Message> resFuture = CompletableFuture
                         .supplyAsync(() -> new ReqBuilder(line).build());
-
-//                System.out.println("here");
 
                 resFuture.thenApply(messageHandler::handle)
                         .whenComplete(outConsumer)

@@ -3,10 +3,13 @@ package io.jespen.lib;
 import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
-public record TopologyReqPd(int msg_id, JsonNode topology) implements ReqPayload {
+import java.util.List;
+import java.util.Map;
+
+public record TopologyReqPd(int msg_id, Map<String, List<String>> topology) implements ReqPayload {
 
     public TopologyReqPd(JsonNode obj) {
-        this(obj.get("body").get("msg_id").asInt(), obj.get("topology"));
+        this(obj.get("body").get("msg_id").asInt(), objectMapper.convertValue(obj.get("body").get("topology"), Map.class));
     }
 
     @Override

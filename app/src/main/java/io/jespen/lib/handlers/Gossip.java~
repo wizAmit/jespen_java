@@ -1,0 +1,75 @@
+package io.jespen.lib.handlers;
+
+
+import io.jespen.lib.*;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+public class Gossip extends Broadcast {
+
+    ExecutorService scheduledGossip = Executors.newVirtualThreadPerTaskExecutor();
+
+    protected Message handleGossip(Message message) {
+        if (message.msgType().equals(MsgType.gossip)) {
+
+            var known2them = ackReceived.get(message.headers().src());
+            known2them.forEach((k, v) -> messages.putIfAbsent(k, false));
+
+            return new Message(MsgType.gossip_ok,
+                    reverseHeaders.apply(message),
+                    new GossipRes((GossipReqPd) message.payload(), msgId.incrementAndGet()));
+        } else if (message.msgType().equals(MsgType.gossip_ok)) {
+            // Here there is actually the necessity to change return type to Optional!!!
+            int rndNode = ThreadLocalRandom.current().nextInt(neighbors.size());
+            Headers gossipTo = new Headers(this.nodeId, neighbors.get(rndNode));
+            CompletableFuture.runAsync(
+                    () -> schedule(() -> gossipReqSupplier.get(), ChronoUnit.MILLIS, scheduledGossip))
+                    .thenApply(res -> new Message(MsgType.gossip_ok, gossipTo, gossipReqSupplier.get()))
+                    .thenAccept(System.out::println);
+
+            return null;
+        } else {
+            return handle(message);
+        }
+    }
+
+    Supplier<GossipReqPd> gossipReqSupplier = () -> {
+        var listSize = this.messages.size()/3;
+        var rndIndxs = ThreadLocalRandom.current().ints(listSize, 0, listSize);
+
+        Set<Integer> msgIndxs = rndIndxs.boxed().collect(Collectors.toSet());
+
+        List<Integer> listMsgs = new ArrayList<>();
+        int i = 0;
+        for (var entry : this.messages.entrySet()) {
+            if (!msgIndxs.contains(i))
+                continue;
+            listMsgs.add(entry.getKey());
+            i++;
+        }
+
+        return new GossipReqPd(msgId.incrementAndGet(), listMsgs);
+    };
+
+    static void schedule(Runnable task, TemporalUnit unit, ExecutorService executorService) {
+        executorService.submit(() -> {
+            return executorService.submit(() -> {
+                try {
+                    Thread.sleep(Duration.of(3000, unit));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                task.run();
+            });
+        });
+    }
+}

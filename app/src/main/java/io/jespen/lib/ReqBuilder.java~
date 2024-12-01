@@ -38,7 +38,6 @@ public class ReqBuilder {
                 default -> null;
             };
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("JSON parse error");
         }
 

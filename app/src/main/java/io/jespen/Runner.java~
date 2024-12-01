@@ -74,14 +74,12 @@ public class Runner {
 
                 rpcClnt = CompletableFuture
                         .runAsync(() -> {
-                            System.err.println("Starting RpcClient...");
                             RpcClient client = new RpcClient((Broadcast) messageHandler);
                             client.start();
                         }, rpcClntExecutor);
 
                 rpcSrvr = CompletableFuture
                         .runAsync(() -> {
-                            System.err.println("Starting RpcServer...");
                             RpcServer server = new RpcServer((Broadcast) messageHandler);
                             server.start();
                         }, executor);

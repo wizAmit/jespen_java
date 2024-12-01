@@ -1,11 +1,11 @@
 package io.jespen.lib;
 
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public record GossipReqPd(int msg_id, List<Integer> known2other) implements ReqPayload {
 
@@ -31,6 +31,14 @@ public record GossipReqPd(int msg_id, List<Integer> known2other) implements ReqP
 
     @Override
     public JsonObject getJsonObject() {
-        return null;
+        JsonArray jsonArrMsgs = new JsonArray();
+        for (Integer integer : known2other) {
+            jsonArrMsgs.add(integer);
+        }
+
+        return new JsonObject()
+                .add("msg_id", msg_id())
+                .add("type", getMsgType().toString())
+                .add("messages", jsonArrMsgs);
     }
 }

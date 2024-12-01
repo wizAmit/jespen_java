@@ -12,7 +12,7 @@ import java.util.function.Function;
 public abstract class NodeV2 {
 
     protected NodeState state = NodeState.Uninitialized;
-    protected Optional<ConcurrentHashMap<String, List<String>>> topology = Optional.empty();
+    protected Optional<ConcurrentHashMap<String, List>> topology = Optional.empty();
 
     public static final AtomicInteger msgId = new AtomicInteger();
 

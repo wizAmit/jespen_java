@@ -43,9 +43,9 @@ java {
     }
 }
 
-tasks.withType<JavaCompile>(){
-    options.compilerArgs.addAll(listOf("--enable-preview"))
-}
+//tasks.withType<JavaCompile>(){
+//    options.compilerArgs.addAll(listOf("--enable-preview"))
+//}
 
 
 application {

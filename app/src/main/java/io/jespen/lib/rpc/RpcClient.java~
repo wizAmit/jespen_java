@@ -1,0 +1,247 @@
+package io.jespen.lib.rpc;
+
+import com.eclipsesource.json.JsonObject;
+import io.jespen.lib.GossipReqPd;
+import io.jespen.lib.Headers;
+import io.jespen.lib.Message;
+import io.jespen.lib.MsgType;
+import io.jespen.lib.handlers.Broadcast;
+import io.jespen.lib.handlers.NodeV2;
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.Channels;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
+public class RpcClient implements PropertyChangeListener {
+
+    private NodeV2 gossipNode;
+    private Supplier<Map<Integer, Socket>> socketSupplier;
+
+    public RpcClient(Broadcast gossipNode) {
+        System.err.println("RpcClient created");
+        this.gossipNode = gossipNode;
+    }
+
+//    public Map<Integer, Message> getNode2GossipMsg() {
+//        var neighbors = this.gossipNode.getTopology().get().get(this.gossipNode.getNodeId());
+//        Map<Integer, Message> gossipMessages = new HashMap<>();
+//        for (String neighbor : neighbors) {
+//            System.err.println(neighbor);
+//            getPut(neighbor, gossipMessages);
+//
+//        }
+//        return gossipMessages;
+//    }
+
+    private Message getGossipMsg(String neighbor) {
+        return new Message(MsgType.gossip,
+                new Headers(this.gossipNode.getNodeId(), neighbor),
+                new GossipReqPd(NodeV2.msgId.incrementAndGet(),
+                        new ArrayList<>(((Broadcast) this.gossipNode).getMessages()
+                                .keySet())));
+    }
+
+//    Function<Map.Entry<Integer, Message>, Optional<Message>> singleGossip = (Map.Entry<Integer, Message> entry) -> {
+//        try (Socket cliSocket = new Socket("localhost", entry.getKey())) {
+//            System.err.println(this.gossipNode.getNodeId() + " Client Socket created on port " + cliSocket.getPort());
+//            PrintWriter writer = new PrintWriter(cliSocket.getOutputStream(), true);
+//            writer.println(this.gossipNode.toJsonObject.apply(entry.getValue()));
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(cliSocket.getInputStream()));
+//            return Optional.ofNullable(new ReqBuilder(reader.readLine()).build());
+//        } catch (Exception e) {
+//            System.err.println("Exception: " + e.getLocalizedMessage());
+//            e.printStackTrace();
+//        }
+//        return Optional.empty();
+//    };
+
+    BiConsumer<Map.Entry<Integer, Message>, ObjectOutputStream> singleGossip = (Map.Entry<Integer, Message> entry, ObjectOutputStream oos) -> {
+        try {
+            oos.writeBytes(entry.getValue().toString());
+            oos.flush();
+        } catch (Exception e) {
+            System.err.println("Exception: " + e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+    };
+
+//    public void task(ObjectOutputStream oos) {
+//
+//        List<StructuredTaskScope.Subtask<Message>> futures = new ArrayList<>();
+//        try (StructuredTaskScope<Message> task = new StructuredTaskScope<>()) {
+//
+//            for (Map.Entry<Integer, Message> entry : getNode2GossipMsg().entrySet()) {
+//                if (entry.getValue() == null) {
+//                    continue;
+//                }
+//                futures.add(task.fork(() -> singleGossip.apply(entry).orElse(null)));
+//            }
+//
+//            task.join();
+//            futures.forEach(System.err::println);
+//        } catch (Exception e) {
+//            System.err.println("Exception: " + e.getLocalizedMessage());
+//            e.printStackTrace();
+//        }
+//    }
+
+//    private void task(ObjectOutputStream oos) {
+//        System.err.println("exec task");
+//        getNode2GossipMsg().entrySet().forEach((entry) -> singleGossip.accept(entry, oos));
+//    }
+
+//    static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+//        @Override
+//        public Thread newThread(Runnable r) {
+//            Thread thread = new Thread(r);
+//            thread.setDaemon(true);
+//            return thread;
+//        }
+//    });
+
+
+    //    public void start() throws IOException {
+//        Map<Integer, Message> gossipMessages = getNode2GossipMsg();
+//
+//
+//        int port = gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0);
+//
+//        try (Socket cliSocket = new Socket("localhost", port)) {
+//            System.err.println(message.get().headers().src() + " Client Socket created on port " + cliSocket.getPort());
+//
+//            PrintWriter writer = new PrintWriter(cliSocket.getOutputStream(), true);
+//            System.err.println("Client Socket created. Writing message: " + this.gossipNode.toJsonObject.apply(message.get()));
+//            writer.println(this.gossipNode.toJsonObject.apply(message.get()));
+//        } catch (Exception e) {
+//            System.err.println("Exception: " + e.getLocalizedMessage());
+//            e.printStackTrace();
+//        }
+//    }
+//    public void start() {
+//        System.err.println("Starting task within RpcClient: " + Thread.currentThread().getName());
+//
+//        assert this.gossipNode.getTopology().get().get(this.gossipNode.getNodeId()) != null;
+//        System.err.println(this.gossipNode.getTopology().get().get(this.gossipNode.getNodeId()) == null);
+//        if (this.gossipNode.getTopology().get().get(this.gossipNode.getNodeId()) == null) {
+//            System.err.println("Do not schedule task");
+//            return;
+//        }
+//
+//        scheduler.scheduleAtFixedRate(() -> {
+//            this.task();
+//        }, 500, 300, TimeUnit.MILLISECONDS);
+//    }
+//    public void start() {
+//        System.err.println("Starting task within RpcClient: " + Thread.currentThread().getName());
+//        try {
+//            int port = gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0);
+//            InetSocketAddress hostAddress = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port);
+//            AsynchronousSocketChannel clientSocketChannel = AsynchronousSocketChannel.open();
+//            Future<Void> connectFuture = clientSocketChannel.connect(hostAddress);
+//            connectFuture.get(); // Wait until connection is done.
+//            OutputStream os = Channels.newOutputStream(clientSocketChannel);
+//            ObjectOutputStream oos = new ObjectOutputStream(os);
+//
+//            this.task(oos);
+//
+//            oos.writeObject("EOF");
+//            oos.close();
+//            clientSocketChannel.close();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+
+    ObjectOutputStream getOutputStreams(String neighbor) throws IOException, ExecutionException, InterruptedException {
+
+        int port = gossipNode.getRpcPorts.apply(neighbor).get(0);
+        InetSocketAddress hostAddress = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port);
+        AsynchronousSocketChannel clientSocketChannel = AsynchronousSocketChannel.open();
+        Future<Void> connectFuture = clientSocketChannel.connect(hostAddress);
+        connectFuture.get();
+        OutputStream os = Channels.newOutputStream(clientSocketChannel);
+        return new ObjectOutputStream(os);
+
+    }
+
+    AsynchronousSocketChannel getSocketChannel(String neighbor) throws IOException, ExecutionException, InterruptedException {
+        int port = gossipNode.getRpcPorts.apply(neighbor).get(0);
+        InetSocketAddress hostAddress = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port);
+        AsynchronousSocketChannel clientSocketChannel = AsynchronousSocketChannel.open();
+        Future<Void> connectFuture = clientSocketChannel.connect(hostAddress);
+        connectFuture.get();
+        return clientSocketChannel;
+    }
+
+    void sendGossip(String neighbor, Message message) throws IOException, ExecutionException, InterruptedException {
+        ObjectOutputStream outputStream = getOutputStreams(neighbor);
+        JsonObject res = new JsonObject()
+                .add("src", message.headers().src())
+                .add("dest", message.headers().dest())
+                .add("body", message.payload().getJsonObject());
+        outputStream.writeUTF(res.toString());
+        outputStream.flush();
+    }
+
+    static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r);
+            thread.setDaemon(true);
+            return thread;
+        }
+    });
+
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (evt.getPropertyName().equals("topology")) {
+            System.err.println("RpcClient => Property change: " + evt.getPropertyName());
+//            try(ExecutorService executorService = Executors.unconfigurableExecutorService(scheduler)) {
+//               scheduler.scheduleWithFixedDelay(() -> {
+                   System.err.println("Running gossip task");
+                    for (String neighbor : gossipNode.getTopology().get().get(gossipNode.getNodeId())) {
+                        try {
+                            Message message = getGossipMsg(neighbor);
+                            sendGossip(neighbor, message);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            System.err.println(e.getLocalizedMessage());
+                        }
+                    }
+//                }, 10, 300, TimeUnit.MILLISECONDS);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.err.println(e.getLocalizedMessage());
+//            } finally {
+//                scheduler.shutdown();
+//            }
+        }
+    }
+
+    public Runnable trigger() {
+        System.err.println("Running gossip task");
+        System.err.println("Topology contains key: " + gossipNode.getTopology().get().containsKey(gossipNode.getNodeId()));
+        for (String neighbor : gossipNode.getTopology().get().get(gossipNode.getNodeId())) {
+            try {
+                Message message = getGossipMsg(neighbor);
+                sendGossip(neighbor, message);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.err.println(e.getLocalizedMessage());
+            }
+        }
+        return null;
+    }
+}

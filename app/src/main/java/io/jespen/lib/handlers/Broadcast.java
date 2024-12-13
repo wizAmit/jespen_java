@@ -2,18 +2,31 @@ package io.jespen.lib.handlers;
 
 import com.eclipsesource.json.JsonArray;
 import io.jespen.lib.*;
-import io.jespen.lib.rpc.RpcClient;
+import io.jespen.lib.rpc.SelectorCli;
 
-import java.io.IOException;
+import java.beans.PropertyChangeSupport;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 public class Broadcast extends NodeV2 {
 
     protected final ConcurrentHashMap<Integer, Boolean> messages = new ConcurrentHashMap<>();
     protected final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Boolean>> ackReceived = new ConcurrentHashMap<>();
     protected Gossip gossip;
+
+    private final PropertyChangeSupport topologyChangeSupport = new PropertyChangeSupport(this);
+
+    static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r);
+            thread.setDaemon(true);
+            return thread;
+        }
+    });
 
     public Broadcast() {
         super();
@@ -41,28 +54,13 @@ public class Broadcast extends NodeV2 {
             JsonArray bodyMsgs = new JsonArray();
             messages.keys().asIterator().forEachRemaining(bodyMsgs::add);
 
-//            for (String neighbor : this.topology.get(nodeId)) {
-//                System.err.println(neighbor);
-//                RpcClient rpcClient = new RpcClient();
-//                try {
-//                    rpcClient.start(getRpcPorts.apply(neighbor).get(0),
-//                            () -> {
-//                                return new Message(MsgType.gossip,
-//                                        new Headers(nodeId, neighbor),
-//                                        new GossipReqPd(msgId.incrementAndGet(), messages.keySet().stream().collect(Collectors.toList())));
-//                            });
-//                } catch (IOException e) {
-//                    System.err.println("Error Gossiping on read: " + e.getLocalizedMessage());
-//                }
-//
-//            }
-
             return new Message(MsgType.read_ok,
                     reverseHeaders.apply(message),
                     new ReadRes((ReadReqPd) message.payload(), msgId.incrementAndGet(), bodyMsgs));
         } else if (message.msgType().equals(MsgType.topology)) {
             this.topology.get().put(nodeId, ((TopologyReqPd) message.payload()).topology().get(nodeId));
 
+            SelectorCli selectorCli = SelectorCli.start(this);
             return new Message(MsgType.topology_ok,
                     reverseHeaders.apply(message),
                     new TopologyRes((TopologyReqPd) message.payload(), msgId.incrementAndGet()));

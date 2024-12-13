@@ -5,46 +5,113 @@ import io.jespen.lib.ReqBuilder;
 import io.jespen.lib.handlers.Broadcast;
 import io.jespen.lib.handlers.NodeV2;
 
-import java.io.BufferedReader;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.net.InetSocketAddress;
+import java.nio.channels.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class RpcServer {
+public class RpcServer
+//        implements PropertyChangeListener
+{
+
+    AsynchronousServerSocketChannel rpcServerSocketChannel;
 
     private NodeV2 gossipNode;
-    public RpcServer (Broadcast gossipNode) {
+    private Selector selector;
+
+    public RpcServer(Broadcast gossipNode, AsynchronousChannelGroup serverChannelGroup) throws IOException {
+        System.err.println("RPC Server created");
         this.gossipNode = gossipNode;
+        this.selector = Selector.open();
+        InetSocketAddress port = new InetSocketAddress("localhost", gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0));
+        rpcServerSocketChannel = AsynchronousServerSocketChannel.open(serverChannelGroup).bind(port);
     }
+
+//    public void start() {
+//        int port = gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0);
+//        try (ServerSocket serverSocket = new ServerSocket(port)) {
+//            System.err.println("RPC Server started on port " + port);
+//
+//            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+//                while (true) {
+//                    var client = serverSocket.accept();
+//                    executor.submit(() -> {
+//                        System.err.println("Gossip Client Socket created on port " + client.getPort());
+//
+//                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
+//                            String inputLine = reader.readLine();
+//                            System.err.println("Gossip Client received: " + inputLine);
+//                            Message message = new ReqBuilder(inputLine).build();
+//                            System.err.println("RPC Message built: " + message);
+//                            this.gossipNode.handle(message);
+//                        } catch (IOException e) {
+//                            System.err.println("RPCSrvr IO Exception: " + e.getLocalizedMessage());
+//                        }
+//                    });
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            System.err.println("Server Exception: " + e.getLocalizedMessage());
+//        }
+//    }
 
     public void start() {
-        int port = gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0);
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.err.println("RPC Server started on port " + port);
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            rpcServerSocketChannel.accept("Client connection",
+                    new CompletionHandler<AsynchronousSocketChannel, Object>() {
+                        public void completed(AsynchronousSocketChannel ch, Object att) {
+                            System.out.println("Accepted a connection");
 
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                while (true) {
-                    var client = serverSocket.accept();
-                    executor.submit(() -> {
-                        System.err.println("Gossip Client Socket created on port " + client.getPort());
+                            // accept the next connection
+                            rpcServerSocketChannel.accept("Client connection", this);
 
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
-                            String inputLine = reader.readLine();
-                            System.err.println("Gossip Client received: " + inputLine);
-                            Message message = new ReqBuilder(inputLine).build();
-                            System.err.println("RPC Message built: " + message);
-                            this.gossipNode.handle(message);
-                        } catch (IOException e) {
-                            System.err.println("RPCSrvr IO Exception: " + e.getLocalizedMessage());
+                            // handle this connection
+                            //TODO handle(ch);
+                            System.err.println("received: " + ch + " attr: " + att);
+                            InputStream in = Channels.newInputStream(ch);
+                            try {
+                                ObjectInputStream ois = new ObjectInputStream(in);
+                                while (true) {
+                                    Object obj = ois.readObject();
+                                    Message message = null;
+                                    if (obj != null) {
+                                        message = new ReqBuilder(obj.toString()).build();
+                                    }
+                                    System.err.println(message);
+                                }
+                            } catch (IOException e) {
+                                System.err.println("RPCSrvr IO Exception: " + e.getLocalizedMessage());
+                                e.printStackTrace();
+                            } catch (ClassNotFoundException e) {
+                                System.err.println("RPCSrvr ClassNotFound Exception: " + e.getLocalizedMessage());
+                            }
+                        }
+
+                        public void failed(Throwable exc, Object att) {
+                            System.out.println("Failed to accept connection");
                         }
                     });
-                }
-            }
-
-        } catch (IOException e) {
-            System.err.println("Server Exception: " + e.getLocalizedMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
         }
     }
+
+//    @Override
+//    public void propertyChange(PropertyChangeEvent evt) {
+//        if (evt.getPropertyName().equals("topology")) {
+//            try {
+//                start();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.err.println(e.getLocalizedMessage());
+//            }
+//        }
+//    }
 }

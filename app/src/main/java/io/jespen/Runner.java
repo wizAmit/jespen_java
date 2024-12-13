@@ -4,15 +4,20 @@
 package io.jespen;
 
 import com.eclipsesource.json.JsonObject;
-import io.jespen.lib.*;
+import io.jespen.lib.Message;
+import io.jespen.lib.ReqBuilder;
 import io.jespen.lib.handlers.Broadcast;
 import io.jespen.lib.handlers.NodeV2;
-import io.jespen.lib.rpc.RpcClient;
-import io.jespen.lib.rpc.RpcServer;
+import io.jespen.lib.rpc.SelectorSrvr;
 
 import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Scanner;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.BiConsumer;
 
 public class Runner {
@@ -40,17 +45,6 @@ public class Runner {
         }
     });
 
-    static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setDaemon(true);
-            return thread;
-        }
-    });
-
-    static Executor rpcClntExecutor = CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS, scheduler);
-
     public static void main(String[] args) throws IOException {
 
 //        NodeV2 messageHandler = new EchoNodeV2();
@@ -59,9 +53,10 @@ public class Runner {
         CompletableFuture<Void> rpcSrvr = null;
         CompletableFuture<Void> rpcClnt = null;
 
+        AsynchronousChannelGroup serverChannelGroup = AsynchronousChannelGroup.withThreadPool(executor);
 
-
-        try (Scanner scanner = new Scanner(System.in)) {
+        try (Scanner scanner = new Scanner(System.in);
+             AsynchronousSocketChannel rpcClientChannel = AsynchronousSocketChannel.open(serverChannelGroup);) {
 
             while (scanner.hasNext()) {
                 String line = scanner.nextLine();
@@ -72,28 +67,21 @@ public class Runner {
                         .whenComplete(outConsumer)
                         .join();
 
-                rpcClnt = CompletableFuture
-                        .runAsync(() -> {
-                            System.err.println("Starting RpcClient...");
-                            RpcClient client = new RpcClient((Broadcast) messageHandler);
-                            client.start();
-                        }, rpcClntExecutor);
-
-                rpcSrvr = CompletableFuture
-                        .runAsync(() -> {
-                            System.err.println("Starting RpcServer...");
-                            RpcServer server = new RpcServer((Broadcast) messageHandler);
-                            server.start();
-                        }, executor);
+                rpcSrvr = (rpcSrvr == null) ? CompletableFuture.runAsync(() -> {
+                    try {
+                        new SelectorSrvr((Broadcast) messageHandler).start();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, executor) : rpcSrvr;
 
 
             }
-            rpcClnt.join();
             rpcSrvr.join();
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            scheduler.shutdown();
             executor.shutdown();
         }
 

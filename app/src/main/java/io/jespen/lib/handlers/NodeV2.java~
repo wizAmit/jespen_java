@@ -12,7 +12,7 @@ import java.util.function.Function;
 public abstract class NodeV2 {
 
     protected NodeState state = NodeState.Uninitialized;
-    protected Optional<ConcurrentHashMap<String, List>> topology = Optional.empty();
+    protected Optional<ConcurrentHashMap<String, List<String>>> topology = Optional.empty();
 
     public static final AtomicInteger msgId = new AtomicInteger();
 
@@ -20,7 +20,7 @@ public abstract class NodeV2 {
         return new Headers(msg.headers().dest(), msg.headers().src());
     };
 
-    public Function<String, List<Integer>> getRpcPorts = (String nodeId)  -> {
+    public static Function<String, List<Integer>> getRpcPorts = (String nodeId)  -> {
         int n = nodeId.charAt(1) - '0';
         return List.of(2*(2000+n)+1, 2*(2000+n)+2);
     };

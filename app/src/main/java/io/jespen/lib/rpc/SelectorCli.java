@@ -48,6 +48,7 @@ public class SelectorCli implements AutoCloseable {
 
     public void sendGossip() {
 
+        // ToDo: Work on this!! Similar to making a DB call in a loop :( Architecture needs overhaul!!
         for (String neighbor : this.gossipNode.getTopology().get().get(gossipNode.getNodeId())) {
 //                System.err.println("Sending gossip to neighbor: " + neighbor);
             try (SocketChannel socketChannel = SocketChannel.open()) {

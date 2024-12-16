@@ -64,5 +64,5 @@ public abstract class NodeV2 {
 
     public void updateTopology (String neighbor, Message message) {}
 
-    public Message handleGossip(Message message, String neighbor) { return null; }
+    public abstract Message handleGossip(Message message, String neighbor);
 }

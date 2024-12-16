@@ -4,29 +4,19 @@ import com.eclipsesource.json.JsonArray;
 import io.jespen.lib.*;
 import io.jespen.lib.rpc.SelectorCli;
 
-import java.beans.PropertyChangeSupport;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class Broadcast extends NodeV2 {
 
     protected final ConcurrentHashMap<Integer, Boolean> messages = new ConcurrentHashMap<>();
     protected final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Boolean>> ackReceived = new ConcurrentHashMap<>();
     protected Gossip gossip;
-
-    private final PropertyChangeSupport topologyChangeSupport = new PropertyChangeSupport(this);
-
-    static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setDaemon(true);
-            return thread;
-        }
-    });
 
     public Broadcast() {
         super();
@@ -37,9 +27,13 @@ public class Broadcast extends NodeV2 {
         return messages;
     }
 
+    public ConcurrentHashMap<String, ConcurrentHashMap<Integer, Boolean>> getAckReceived() {
+        return ackReceived;
+    }
+
     @Override
     public Message handle(Message message) {
-        System.err.println("Handling " + message);
+//        System.err.println("Handling " + message);
         if (neighbors != null && ackReceived.size() < neighbors.size()) {
             neighbors.forEach(n -> ackReceived.computeIfAbsent(n, k -> new ConcurrentHashMap<>()));
         }
@@ -72,4 +66,29 @@ public class Broadcast extends NodeV2 {
         }
     }
 
+    @Override
+    public Optional<ReqPayload> getRpcPayload(String neighbor) {
+//        System.err.println("Generating RPC payload for " + neighbor);
+        Map<Boolean, List<Integer>> divided = this.messages.keySet()
+                .stream()
+                .collect(Collectors.partitioningBy((i) -> this.getAckReceived().get(neighbor).containsKey(i)));
+
+        int sz = Math.min((this.messages.size())/10, divided.get(false).size());
+        var list = divided.get(false);
+        for (int i = 0; i < sz; i++) {
+            int idx = ThreadLocalRandom.current().nextInt(divided.get(true).size()) % sz;
+//        if (divided.get(true).size() > 0) {
+//            int idx = ThreadLocalRandom.current().nextInt(2);
+            list.add(divided.get(true).get(idx));
+        }
+
+        GossipReqPd gossipReqPd = new GossipReqPd(msgId.incrementAndGet(), list);
+        System.err.println(neighbor + " => RPC Payload size: " + list.size());
+        return Optional.of(gossipReqPd);
+    }
+
+    @Override
+    public void updateTopology(String neighbor, Message message) {
+        ((GossipReqPd) message.payload()).known2other().forEach(i -> this.ackReceived.get(neighbor).put(i, true));
+    }
 }

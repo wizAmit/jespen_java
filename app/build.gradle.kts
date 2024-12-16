@@ -78,6 +78,7 @@ graalvmNative {
     }
     binaries.all {
         buildArgs.add("--verbose")
+        buildArgs.add("-J-Xmx7g")
     }
 }
 

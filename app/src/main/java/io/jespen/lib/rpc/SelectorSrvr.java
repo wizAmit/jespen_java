@@ -29,13 +29,13 @@ public class SelectorSrvr {
         SocketChannel client = (SocketChannel) key.channel();
         int r = client.read(buffer);
         if (r == -1) {
-            System.err.println("Client disconnected: " + client.socket().getInetAddress() + ":" + client.socket().getPort());
+//            System.err.println("Client disconnected: " + client.socket().getInetAddress() + ":" + client.socket().getPort());
             client.close();
         }
         else {
             buffer.flip();
             String msg = new String(buffer.array()).trim();
-            System.err.println(this.gossipNode.getNodeId() + " Server received: " + msg);
+//            System.err.println(this.gossipNode.getNodeId() + " Server received: " + msg);
             CompletableFuture.runAsync(() -> gossipNode.handle(new ReqBuilder(msg).build()));
             buffer.clear();
         }
@@ -46,7 +46,7 @@ public class SelectorSrvr {
 
         SocketChannel client = serverSocket.accept();
         Socket cliSocket = client.socket();
-        System.err.println("RpcClient connected: " + cliSocket.getInetAddress() + ":" + cliSocket.getPort());
+//        System.err.println("RpcClient connected: " + cliSocket.getInetAddress() + ":" + cliSocket.getPort());
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
         return client;
@@ -56,7 +56,7 @@ public class SelectorSrvr {
         HashSet<SocketChannel> clients = new HashSet<SocketChannel>();
         try (Selector selector = Selector.open();
              ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
-            System.err.println("RPC Server created");
+//            System.err.println("RPC Server created");
             serverSocket.configureBlocking(false);
             InetSocketAddress port = new InetSocketAddress("0.0.0.0", gossipNode.getRpcPorts.apply(gossipNode.getNodeId()).get(0));
             serverSocket.bind(port);

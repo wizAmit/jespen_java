@@ -26,20 +26,23 @@ class Gossip extends NodeV2 {
     }
 
     protected Message handleGossip(Message message, String nodeId) {
-        System.err.println("Handling Gossip " + message);
+//        System.err.println("Handling Gossip " + message);
 
         if (message.msgType().equals(MsgType.gossip)) {
 
 //                var known2them = ackReceived.get(message.headers().src());
 //                known2them.forEach((k, v) -> messages.putIfAbsent(k, false));
 
-            System.err.println("B4 size: " + messages.size());
+//            System.err.println("B4 size: " + messages.size());
             for (Integer i : ((GossipReqPd) message.payload()).known2other()) {
-                ackReceived.computeIfAbsent(message.headers().src(), k -> new ConcurrentHashMap<>());
-                ackReceived.get(message.headers().src()).put(i, true);
-                messages.putIfAbsent(i, true);
+//                ackReceived.computeIfAbsent(message.headers().src(), k -> new ConcurrentHashMap<>());
+                this.ackReceived.get(message.headers().src()).put(i, true);
+                this.messages.putIfAbsent(i, true);
+
+                System.err.println("messages: " + messages);
+                System.err.println("ackReceived: " + ackReceived);
             }
-            System.err.println("AFTER size: " + messages.size());
+//            System.err.println("AFTER size: " + messages.size());
 
 
             return new Message(MsgType.gossip_ok,
@@ -49,7 +52,7 @@ class Gossip extends NodeV2 {
             // Here there is actually the necessity to change return type to Optional!!!
             for (var nd : neighbors) {
                 Headers gossipTo = new Headers(nodeId, nd);
-                System.err.println("Gossiping to " + gossipTo);
+//                System.err.println("Gossiping to " + gossipTo);
 
             }
 

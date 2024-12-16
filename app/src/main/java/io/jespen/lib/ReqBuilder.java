@@ -45,7 +45,6 @@ public class ReqBuilder {
     }
 
     public Message build() {
-        System.err.println("build");
         return new Message(msgType, headers, payload);
     }
 }

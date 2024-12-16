@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public abstract class NodeV2 {
@@ -58,4 +59,8 @@ public abstract class NodeV2 {
     public Optional<ConcurrentHashMap<String, List<String>>> getTopology() {
         return topology;
     }
+
+    public Optional<ReqPayload> getRpcPayload(String neighbor) { return Optional.empty(); }
+
+    public void updateTopology (String neighbor, Message message) {}
 }

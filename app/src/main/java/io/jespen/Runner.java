@@ -27,7 +27,7 @@ public class Runner {
             System.err.println("outConsumer Exception: " + ex.getLocalizedMessage());
         }
 
-        System.err.println("Outputting " + message);
+//        System.err.println("Outputting " + message);
         if (message == null) return;
         JsonObject res = new JsonObject()
                 .add("src", message.headers().src())
